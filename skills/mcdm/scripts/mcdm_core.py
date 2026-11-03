@@ -451,8 +451,16 @@ def vikor(X, w, types, v: float = 0.5) -> Result:
         return (a - a.min()) / rng if rng > 0 else np.zeros_like(a)
 
     Q = v * _scaled(S) + (1 - v) * _scaled(R)
+    details = {"S": S, "R": R, "v": v}
+    details.update(vikor_compromise(Q, S, R))
+    return Result("VIKOR", Q, rank(Q, higher_is_better=False), False, details)
+
+
+def vikor_compromise(Q, S, R) -> dict:
+    """Opricovic & Tzeng (2004) conditions C1 (acceptable advantage) and C2 (acceptable stability)."""
+    Q, S, R = (np.asarray(a, dtype=float) for a in (Q, S, R))
     order = np.argsort(Q, kind="stable")
-    dq = 1 / (m - 1)
+    dq = 1 / (Q.size - 1)
     a1, a2 = order[0], order[1]
     c1 = Q[a2] - Q[a1] >= dq
     c2 = S[a1] == S.min() or R[a1] == R.min()
@@ -462,9 +470,24 @@ def vikor(X, w, types, v: float = 0.5) -> Result:
         compromise = [int(a1), int(a2)]
     else:
         compromise = [int(k) for k in order if Q[k] - Q[a1] < dq]
-    return Result("VIKOR", Q, rank(Q, higher_is_better=False), False,
-                  {"S": S, "R": R, "v": v, "DQ": dq, "acceptable_advantage": bool(c1),
-                   "acceptable_stability": bool(c2), "compromise_set": compromise})
+    return {"DQ": dq, "acceptable_advantage": bool(c1), "acceptable_stability": bool(c2),
+            "compromise_set": compromise}
+
+
+def gra(X, w, types, rho: float = 0.5) -> Result:
+    """Grey relational analysis (Deng, 1982; Kuo, Yang & Huang, 2008) against the ideal series."""
+    X, w, t = check_inputs(X, w, types)
+    if not 0 < rho <= 1:
+        raise ValueError("Distinguishing coefficient rho must be in (0, 1].")
+    Rn = normalize(X, t, "minmax")
+    delta = np.abs(1.0 - Rn)
+    dmin, dmax = delta.min(), delta.max()
+    if dmax == 0:
+        coef = np.ones_like(delta)
+    else:
+        coef = (dmin + rho * dmax) / (delta + rho * dmax)
+    grade = coef @ w
+    return Result("GRA", grade, rank(grade), True, {"rho": rho, "coefficients": coef})
 
 
 def preference_degree(d: np.ndarray, kind: str = "usual", q: float = 0.0, p: float = 0.0,
@@ -716,4 +739,4 @@ def compare_rankings(rankings: dict) -> dict:
 
 
 RANKING_METHODS = {"wsm": wsm, "wpm": wpm, "waspas": waspas, "topsis": topsis, "vikor": vikor,
-                   "promethee": promethee}
+                   "promethee": promethee, "gra": gra}

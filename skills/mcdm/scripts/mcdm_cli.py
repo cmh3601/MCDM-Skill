@@ -3,12 +3,14 @@
 Usage:
     python mcdm_cli.py spec.json [--out results.json]
 
-See example_spec.json for the format. Weights come from one of:
-given | equal | entropy | critic | std | roc | ahp | fuzzy_ahp | bwm, optionally
-blended with an objective method via "combine_with". Each entry in "methods"
-is run on the same weights; rankings are compared and, if requested, a
-one-at-a-time weight sensitivity, rank-reversal check and SMAA-style
-acceptability analysis are added.
+See example_spec.json and example_danp_spec.json for the format. Weights come
+from one of: given | equal | entropy | critic | std | roc | ahp | fuzzy_ahp |
+bwm | danp, optionally blended with an objective method via "combine_with".
+Each entry in "methods" (wsm, wpm, waspas, topsis, vikor, promethee, gra) is run
+on the same weights; rankings are compared and, if requested, a one-at-a-time
+weight sensitivity, rank-reversal check and SMAA-style acceptability analysis
+are added. Optional blocks "electre_i", "electre_ii", "electre_iii",
+"electre_iv" and "electre_tri" run the outranking methods on the same data.
 """
 
 from __future__ import annotations
@@ -23,6 +25,8 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import mcdm_core as mc  # noqa: E402
+import mcdm_network as mn  # noqa: E402
+import mcdm_outranking as eo  # noqa: E402
 
 
 def judgments(rows) -> np.ndarray:
@@ -61,6 +65,13 @@ def derive_weights(spec: dict, X: np.ndarray, types: np.ndarray) -> tuple[np.nda
         res = mc.bwm_weights(cfg["best_to_others"], cfg["others_to_worst"], cfg["best"], cfg["worst"])
         w = res["weights"]
         info.update({"xi": res["xi"], "CR_input": res["CR_input"]})
+    elif method == "danp":
+        names = [c["name"] for c in spec["criteria"]]
+        groups = [[names.index(c) if isinstance(c, str) else int(c) for c in g] for g in cfg["dimensions"].values()]
+        res = mn.danp(np.array(cfg["relation_matrix"], dtype=float), groups, cfg.get("threshold"))
+        w = res["weights"]
+        info.update({"dimension_weights": dict(zip(cfg["dimensions"], res["dimension_weights"].tolist())),
+                     "prominence": res["dematel"]["prominence"], "relation": res["dematel"]["relation"]})
     else:
         raise ValueError(f"Unknown weight method {method!r}.")
     if "combine_with" in cfg:
@@ -109,6 +120,16 @@ def run(spec: dict) -> dict:
     if spec.get("electre_i") not in (None, False):
         cfg = spec["electre_i"] if isinstance(spec["electre_i"], dict) else {}
         out["electre_i"] = mc.electre_i(X, w, types, **cfg)
+    if spec.get("electre_ii") not in (None, False):
+        cfg = spec["electre_ii"] if isinstance(spec["electre_ii"], dict) else {}
+        out["electre_ii"] = eo.electre_ii(X, w, types, **cfg)
+    # These need thresholds (q, p, optional v) and, for Tri-B, profiles and cut.
+    if "electre_iii" in spec:
+        out["electre_iii"] = eo.electre_iii(X, w, types, **spec["electre_iii"])
+    if "electre_iv" in spec:
+        out["electre_iv"] = eo.electre_iv(X, types, **spec["electre_iv"])  # no weights by design
+    if "electre_tri" in spec:
+        out["electre_tri"] = eo.electre_tri_b(X, w, types, **spec["electre_tri"])
     return mc._jsonable(out)
 
 

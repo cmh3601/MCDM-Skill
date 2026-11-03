@@ -49,8 +49,46 @@ Common choices: element-wise geometric mean of l, m, u across experts (keeps
 reciprocity for pairwise matrices), or (min l, mean m, max u) for ratings, which
 widens uncertainty. Report which one you used.
 
-## Not implemented here (use pyDecision)
+## Fuzzy VIKOR, `mf.fuzzy_vikor`
 
-Fuzzy VIKOR, fuzzy DEMATEL, intuitionistic/spherical/Pythagorean fuzzy variants,
-grey relational analysis. Check pyDecision's implementation against a published
+Fuzzy arithmetic throughout, following the structure of Opricovic (2011):
+
+1. Fuzzy best f̃*_j and worst f̃°_j: component-wise max/min of the ratings (min/max for cost).
+2. Normalised fuzzy gap: benefit d̃_ij = (f̃*_j ⊖ x̃_ij)/(u*_j − l°_j); cost
+   d̃_ij = (x̃_ij ⊖ f̃*_j)/(u°_j − l*_j), with ã ⊖ b̃ = (l_a − u_b, m_a − m_b, u_a − l_b).
+3. S̃_i = Σ_j w̃_j ⊗ d̃_ij; R̃_i = component-wise max_j of w̃_j ⊗ d̃_ij.
+4. Q̃_i = v (S̃_i ⊖ S̃*)/(S°_u − S*_l) ⊕ (1 − v)(R̃_i ⊖ R̃*)/(R°_u − R*_l).
+5. Defuzzify S, R, Q (centroid by default, `defuzz="graded_mean"` or `"cfcs"` available),
+   rank by Q (lower is better) and check C1/C2 as in crisp VIKOR.
+
+With l = m = u the method returns exactly the crisp VIKOR result (tested). The product
+uses bound-wise min/max so that negative lower bounds of d̃ stay valid.
+
+Opricovic, S. (2011). Fuzzy VIKOR with an application to water resources planning.
+*Expert Systems with Applications*, 38(10), 12983–12990.
+
+## Fuzzy DEMATEL, `mf.fuzzy_dematel`
+
+In the manner of Lin & Wu (2008): average the TFN direct-relation matrices, normalise
+the l, m, u matrices by the same constant (max row/column sum of u), compute
+T_k = N_k (I − N_k)⁻¹ for each component, defuzzify the fuzzy total relation and then
+compute D, R, prominence and relation. Reduces exactly to crisp DEMATEL (tested).
+
+Lin, C. J., & Wu, W. W. (2008). A causal analytical method for group decision-making under
+fuzzy environment. *Expert Systems with Applications*, 34(1), 205–213.
+
+## CFCS defuzzification, `mf.cfcs`
+
+Converting Fuzzy data into Crisp Scores (Opricovic & Tzeng, 2003) over a set of TFNs, using
+the global min l and max u as the range: normalise, compute left/right scores
+ls = x_m/(1 + x_m − x_l), us = x_u/(1 + x_u − x_m), total x = [ls(1 − ls) + us²]/(1 − ls + us),
+and map back. Use the same set (e.g. one expert's whole matrix) for all values you compare.
+
+Opricovic, S., & Tzeng, G. H. (2003). Defuzzification within a multicriteria decision model.
+*International Journal of Uncertainty, Fuzziness and Knowledge-Based Systems*, 11(5), 635–652.
+
+## Not implemented here (use pyDecision or write it)
+
+Intuitionistic, spherical, Pythagorean and q-rung fuzzy variants; fuzzy BWM; fuzzy
+PROMETHEE; ELECTRE Tri-C / Tri-nB / Tri-nC. Check any implementation against a published
 worked example before relying on it.

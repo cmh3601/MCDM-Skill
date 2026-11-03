@@ -34,12 +34,21 @@
       {"kind": "vshape", "p": 10},
       {"kind": "level", "q": 1, "p": 4},
       {"kind": "gaussian", "s": 150}
-    ]}
+    ]},
+    {"name": "gra", "rho": 0.5}
   ],
   "analysis": {
     "sensitivity": true,
     "rank_reversal": true,
     "acceptability": {"n_samples": 1000, "concentration": 40, "seed": 7}
   },
-  "electre_i": {}
+  "electre_i": {},
+  "electre_ii": {"c_minus": 0.5, "c_zero": 0.6, "c_plus": 0.7, "d_minus": 0.4, "d_plus": 0.7},
+  "electre_iii": {"q": [0.5, 2, 1, 30], "p": [2, 6, 3, 100], "v": [5, 15, 6, 300]},
+  "electre_iv": {"q": [0.5, 2, 1, 30], "p": [2, 6, 3, 100], "v": [5, 15, 6, 300]},
+  "electre_tri": {
+    "profiles": [[27, 78, 16, 800], [24, 86, 12, 950]],
+    "q": [0.5, 2, 1, 30], "p": [2, 6, 3, 100], "v": [5, 15, 6, 300],
+    "cut": 0.7
+  }
 }

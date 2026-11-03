@@ -1,0 +1,36 @@
+{
+  "goal": "Rank building energy-management strategies with DANP weights and VIKOR (illustrative data)",
+  "alternatives": ["Baseline", "Rule-based", "MPC", "RL controller"],
+  "criteria": [
+    {"name": "Energy saving (%)", "type": "benefit"},
+    {"name": "Peak reduction (%)", "type": "benefit"},
+    {"name": "Comfort violations (h)", "type": "cost"},
+    {"name": "Capex (k$)", "type": "cost"},
+    {"name": "Explainability (1-9)", "type": "benefit"}
+  ],
+  "matrix": [
+    [0, 0, 40, 0, 9],
+    [8, 6, 35, 15, 8],
+    [15, 18, 20, 60, 5],
+    [18, 22, 25, 45, 3]
+  ],
+  "weights": {
+    "method": "danp",
+    "dimensions": {
+      "Performance": ["Energy saving (%)", "Peak reduction (%)", "Comfort violations (h)"],
+      "Adoption": ["Capex (k$)", "Explainability (1-9)"]
+    },
+    "relation_matrix": [
+      [0, 3, 2, 1, 1],
+      [3, 0, 2, 1, 1],
+      [2, 1, 0, 0, 2],
+      [3, 3, 1, 0, 2],
+      [1, 1, 2, 3, 0]
+    ]
+  },
+  "methods": [
+    {"name": "vikor", "v": 0.5},
+    {"name": "topsis"}
+  ],
+  "analysis": {"sensitivity": true}
+}
